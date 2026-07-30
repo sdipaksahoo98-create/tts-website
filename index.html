@@ -509,4 +509,67 @@
 
             if (engine === 'browser') {
                 showStatus('Starting Browser AI...', '#3b82f6');
-               
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = language;
+                    utterance.rate = pace;
+
+                    utterance.onstart = () => {
+                        showStatus('Playing using Free Browser AI (No download available)...', '#10b981');
+                    };
+                    utterance.onerror = () => {
+                        showStatus('Error playing speech.', '#ef4444');
+                    };
+                    
+                    window.speechSynthesis.speak(utterance);
+                } else {
+                    showStatus('Browser Speech API not supported.', '#ef4444');
+                }
+            } else if (engine === 'sarvam') {
+                showStatus('Generating voice using Sarvam AI...', '#3b82f6');
+                
+                // IMPORTANT: Place your actual API key below
+                const API_KEY = 'sk_bptg3tpr_J0vp7JSlKlaXmtwRY9LjA8jg'; 
+                
+                try {
+                    const response = await fetch('https://api.sarvam.ai/text-to-speech', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'api-subscription-key': API_KEY
+                        },
+                        body: JSON.stringify({
+                            inputs: [text],
+                            target_language_code: language,
+                            speaker: speaker, 
+                            pace: pace,
+                            model: "bulbul:v3"
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.text();
+                        alert("Server Error Code: " + response.status + "\nDetails: " + errorData);
+                        throw new Error(errorData);
+                    }
+                    
+                    const data = await response.json();
+                    if (data && data.audios) {
+                        const audioUrl = `data:audio/wav;base64,${data.audios[0]}`;
+                        audioPlayer.src = audioUrl;
+                        audioPlayer.style.display = 'block';
+                        downloadBtn.href = audioUrl;
+                        downloadBtn.style.display = 'flex';
+                        playerSection.style.display = 'block';
+                        showStatus(`Voice generated successfully!`, '#10b981');
+                    }
+                } catch (err) {
+                    console.error("API Error:", err);
+                    showStatus('Generation failed. Please try again.', '#ef4444');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
